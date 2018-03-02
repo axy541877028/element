@@ -9,6 +9,24 @@
       @checked-change="onSourceCheckedChange">
       <slot name="left-footer"></slot>
     </transfer-panel>
+    <div class="el-transfer__buttons" v-if="updownshow">
+      <el-button
+        type="primary"
+        :class="['el-transfer__button', hasButtonTexts ? 'is-with-texts' : '']"
+        @click.native="addToTop"
+        :disabled="(rightChecked.length === 0&&leftChecked.length === 0)||(rightChecked.length!=1)||leftChecked.length>0">
+        <i class="el-icon-arrow-up"></i>
+        <span v-if="buttonTexts[0] !== undefined">{{ buttonTexts[0] }}</span>
+      </el-button>
+      <el-button
+        type="primary"
+        :class="['el-transfer__button', hasButtonTexts ? 'is-with-texts' : '']"
+        @click.native="addToDown"
+        :disabled="(rightChecked.length === 0&&leftChecked.length === 0)||(rightChecked.length!=1)||leftChecked.length>0">
+        <span v-if="buttonTexts[1] !== undefined">{{ buttonTexts[1] }}</span>
+        <i class="el-icon-arrow-down"></i>
+      </el-button>
+    </div>
     <div class="el-transfer__buttons">
       <el-button
         type="primary"
@@ -18,7 +36,6 @@
         <i class="el-icon-arrow-left"></i>
         <span v-if="buttonTexts[0] !== undefined">{{ buttonTexts[0] }}</span>
       </el-button>
-      1121
       <el-button
         type="primary"
         :class="['el-transfer__button', hasButtonTexts ? 'is-with-texts' : '']"
@@ -41,150 +58,195 @@
 </template>
 
 <script>
-  import ElButton from 'element-ui/packages/button';
-  import Emitter from 'element-ui/src/mixins/emitter';
-  import Locale from 'element-ui/src/mixins/locale';
-  import TransferPanel from './transfer-panel.vue';
-  import Migrating from 'element-ui/src/mixins/migrating';
+import ElButton from "element-ui/packages/button";
+import Emitter from "element-ui/src/mixins/emitter";
+import Locale from "element-ui/src/mixins/locale";
+import TransferPanel from "./transfer-panel.vue";
+import Migrating from "element-ui/src/mixins/migrating";
 
-  export default {
-    name: 'ElTransfer',
+export default {
+  name: "ElTransfer",
 
-    mixins: [Emitter, Locale, Migrating],
+  mixins: [Emitter, Locale, Migrating],
 
-    components: {
-      TransferPanel,
-      ElButton
-    },
+  components: {
+    TransferPanel,
+    ElButton
+  },
 
-    props: {
-      data: {
-        type: Array,
-        default() {
-          return [];
-        }
-      },
-      titles: {
-        type: Array,
-        default() {
-          return [];
-        }
-      },
-      buttonTexts: {
-        type: Array,
-        default() {
-          return [];
-        }
-      },
-      filterPlaceholder: {
-        type: String,
-        default: ''
-      },
-      filterMethod: Function,
-      leftDefaultChecked: {
-        type: Array,
-        default() {
-          return [];
-        }
-      },
-      rightDefaultChecked: {
-        type: Array,
-        default() {
-          return [];
-        }
-      },
-      renderContent: Function,
-      value: {
-        type: Array,
-        default() {
-          return [];
-        }
-      },
-      format: {
-        type: Object,
-        default() {
-          return {};
-        }
-      },
-      filterable: Boolean,
-      props: {
-        type: Object,
-        default() {
-          return {
-            label: 'label',
-            key: 'key',
-            disabled: 'disabled'
-          };
-        }
+  props: {
+    updownshow: {
+      type: Boolean,
+      default() {
+        return false;
       }
     },
+    data: {
+      type: Array,
+      default() {
+        return [];
+      }
+    },
+    titles: {
+      type: Array,
+      default() {
+        return [];
+      }
+    },
+    buttonTexts: {
+      type: Array,
+      default() {
+        return [];
+      }
+    },
+    filterPlaceholder: {
+      type: String,
+      default: ""
+    },
+    filterMethod: Function,
+    leftDefaultChecked: {
+      type: Array,
+      default() {
+        return [];
+      }
+    },
+    rightDefaultChecked: {
+      type: Array,
+      default() {
+        return [];
+      }
+    },
+    renderContent: Function,
+    value: {
+      type: Array,
+      default() {
+        return [];
+      }
+    },
+    format: {
+      type: Object,
+      default() {
+        return {};
+      }
+    },
+    filterable: Boolean,
+    props: {
+      type: Object,
+      default() {
+        return {
+          label: "label",
+          key: "key",
+          disabled: "disabled"
+        };
+      }
+    }
+  },
 
-    data() {
+  data() {
+    return {
+      leftChecked: [],
+      rightChecked: []
+    };
+  },
+
+  computed: {
+    sourceData() {
+      return this.data.filter(
+        item => this.value.indexOf(item[this.props.key]) === -1
+      );
+    },
+
+    targetData() {
+      let tmp = [];
+      this.value.forEach(item => {
+        let i = this.data.findIndex(it => it[this.props.key] === item);
+        tmp.push(this.data[i]);
+      });
+      return tmp;
+    },
+
+    hasButtonTexts() {
+      return this.buttonTexts.length === 2;
+    }
+  },
+
+  watch: {
+    value(val) {
+      this.dispatch("ElFormItem", "el.form.change", val);
+    }
+  },
+
+  methods: {
+    getMigratingConfig() {
       return {
-        leftChecked: [],
-        rightChecked: []
+        props: {
+          "footer-format": "footer-format is renamed to format."
+        }
       };
     },
 
-    computed: {
-      sourceData() {
-        return this.data.filter(item => this.value.indexOf(item[this.props.key]) === -1);
-      },
-
-      targetData() {
-        return this.data.filter(item => this.value.indexOf(item[this.props.key]) > -1);
-      },
-
-      hasButtonTexts() {
-        return this.buttonTexts.length === 2;
-      }
+    onSourceCheckedChange(val) {
+      this.leftChecked = val;
     },
 
-    watch: {
-      value(val) {
-        this.dispatch('ElFormItem', 'el.form.change', val);
-      }
+    onTargetCheckedChange(val) {
+      this.rightChecked = val;
     },
 
-    methods: {
-      getMigratingConfig() {
-        return {
-          props: {
-            'footer-format': 'footer-format is renamed to format.'
-          }
-        };
-      },
+    addToLeft() {
+      let currentValue = this.value.slice();
+      console.log(currentValue);
+      this.rightChecked.forEach(item => {
+        const index = currentValue.indexOf(item);
+        if (index > -1) {
+          currentValue.splice(index, 1);
+        }
+      });
+      this.$emit("input", currentValue);
+      console.log(currentValue);
+      this.$emit("change", currentValue, "left", this.rightChecked);
+    },
 
-      onSourceCheckedChange(val) {
-        this.leftChecked = val;
-      },
-
-      onTargetCheckedChange(val) {
-        this.rightChecked = val;
-      },
-
-      addToLeft() {
-        let currentValue = this.value.slice();
-        this.rightChecked.forEach(item => {
-          const index = currentValue.indexOf(item);
-          if (index > -1) {
-            currentValue.splice(index, 1);
-          }
-        });
-        this.$emit('input', currentValue);
-        this.$emit('change', currentValue, 'left', this.rightChecked);
-      },
-
-      addToRight() {
-        let currentValue = this.value.slice();
-        this.leftChecked.forEach(item => {
-          if (this.value.indexOf(item) === -1) {
-            currentValue = currentValue.concat(item);
-          }
-        });
-        this.$emit('input', currentValue);
-        this.$emit('change', currentValue, 'right', this.leftChecked);
+    addToTop() {
+      let currentValue = this.value.slice();
+      let currentCheck = this.rightChecked.slice();
+      const index = currentValue.indexOf(currentCheck[0]);
+      if (index == 0) {
+        return false;
       }
+      var a = currentValue.splice(index, 1);
+      currentValue.splice(index - 1, 0, a[0]);
+      this.$emit("input", currentValue);
+    },
+
+    addToDown() {
+      let currentValue = this.value.slice();
+      let currentCheck = this.rightChecked.slice();
+      const index = currentValue.indexOf(currentCheck[0]);
+      if (index == currentValue.length - 1) {
+        return false;
+      }
+      var a = currentValue.splice(index, 1);
+      currentValue.splice(index + 1, 0, a[0]);
+      this.$emit("input", currentValue);
+    },
+
+    addToRight() {
+      let currentValue = this.value.slice();
+      this.leftChecked.forEach(item => {
+        if (this.value.indexOf(item) === -1) {
+          currentValue = currentValue.concat(item);
+        }
+      });
+      this.$emit("input", currentValue);
+      this.$emit("change", currentValue, "right", this.leftChecked);
     }
-  };
+  }
+};
 </script>
+<style scoped>
+.el-transfer__buttons {
+  padding: 0 15px;
+}
+</style>
+
